@@ -2,8 +2,10 @@
 
 import os
 import re
+import socket
 import asyncio
 import logging
+import urllib.parse
 import asyncpg
 
 logger = logging.getLogger(__name__)
@@ -18,6 +20,30 @@ DATABASE_URL = os.getenv(
 # that Python's urlparse misinterprets as IPv6
 if DATABASE_URL:
     DATABASE_URL = re.sub(r'\[([^\]]+)\]', r'\1', DATABASE_URL)
+
+
+def _force_ipv4(url: str) -> str:
+    """Resolve hostname to IPv4 to work around uvloop IPv6 issues on Render."""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        hostname = parsed.hostname
+        if not hostname or hostname in ('localhost', '127.0.0.1'):
+            return url
+        # Resolve to IPv4 only
+        infos = socket.getaddrinfo(hostname, None, socket.AF_INET)
+        if infos:
+            ipv4_addr = infos[0][4][0]
+            logger.info(f"Resolved {hostname} -> {ipv4_addr} (IPv4)")
+            # Reconstruct URL with IP address
+            netloc = url.split('://', 1)[1]
+            netloc = netloc.replace(hostname, ipv4_addr, 1)
+            return f"{parsed.scheme}://{netloc}"
+    except Exception as e:
+        logger.warning(f"Could not force IPv4 for {hostname}: {e}")
+    return url
+
+
+DATABASE_URL = _force_ipv4(DATABASE_URL)
 
 
 async def create_pool():

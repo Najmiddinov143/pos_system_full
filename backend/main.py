@@ -6,9 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import asyncpg
 
-from database import create_pool, init_db
 from routers import auth, products, purchases, sales, expenses, firms, categories
 from routers import employees, notifications, settings, reports, incomes, backup
+from database import create_pool, init_db
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",

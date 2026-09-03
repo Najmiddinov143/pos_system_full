@@ -2,7 +2,11 @@
 
 import os
 import re
+import asyncio
+import logging
 import asyncpg
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -17,8 +21,25 @@ if DATABASE_URL:
 
 
 async def create_pool():
-    """Create and return an asyncpg connection pool."""
-    return await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    """Create and return an asyncpg connection pool with retry logic."""
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            pool = await asyncpg.create_pool(
+                DATABASE_URL,
+                min_size=2,
+                max_size=10,
+                command_timeout=30,
+                ssl='require',
+            )
+            return pool
+        except (OSError, asyncio.TimeoutError, Exception) as e:
+            logger.warning(f"Database connection attempt {attempt}/{max_retries} failed: {e}")
+            if attempt == max_retries:
+                raise
+            wait = 2 ** attempt
+            logger.info(f"Retrying in {wait} seconds...")
+            await asyncio.sleep(wait)
 
 
 async def init_db(pool: asyncpg.Pool):

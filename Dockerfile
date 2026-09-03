@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # Kerakli asosiy kutubxonalarni kafolatlangan holda o'rnatamiz
-RUN pip install --no-cache-dir -r requirements.txt fastapi uvicorn asyncpg pydantic gunicorn
+RUN pip install --no-cache-dir -r requirements.txt fastapi uvicorn asyncpg pydantic gunicorn python-multipart
 
 COPY . .
 

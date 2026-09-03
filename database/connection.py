@@ -1,12 +1,19 @@
 # database/connection.py - asyncpg PostgreSQL connection and schema
 
 import os
+import re
 import asyncpg
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://pos_user:pos_password@localhost:5432/pos_db"
 )
+
+
+# Fix for Python 3.11+ / asyncpg: strip brackets around hostname
+# that Python's urlparse misinterprets as IPv6
+if DATABASE_URL:
+    DATABASE_URL = re.sub(r'\[([^\]]+)\]', r'\1', DATABASE_URL)
 
 
 async def create_pool():

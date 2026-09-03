@@ -2,7 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Tizim bog'liqliklarini o'rnatish
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -13,6 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000
-
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Render o'zi beradigan $PORT o'zgaruvchisidan foydalanamiz
+CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}

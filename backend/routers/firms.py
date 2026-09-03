@@ -279,9 +279,6 @@ async def get_firm_debt_payments(debt_id: int, request: Request):
     get_current_user(request)
     pool = get_pool(request)
     async with pool.acquire() as conn:
-        # Convert date strings to date objects for asyncpg
-        start_date = _parse_date(start_date)
-        end_date = _parse_date(end_date)
         rows = await conn.fetch(
             "SELECT * FROM firm_debt_payments WHERE debt_id = $1 ORDER BY created_at DESC",
             debt_id

@@ -132,9 +132,6 @@ async def get_sale_items(sale_id: int, request: Request):
     pool = get_pool(request)
 
     async with pool.acquire() as conn:
-        # Convert date strings to date objects for asyncpg
-        start_date = _parse_date(start_date)
-        end_date = _parse_date(end_date)
         rows = await conn.fetch(
             """SELECT si.*, p.name as product_name, p.unit
                FROM sale_items si
@@ -151,10 +148,11 @@ async def get_payment_stats(request: Request, start_date: str, end_date: str):
     get_current_user(request)
     pool = get_pool(request)
 
+    # Convert date strings to date objects for asyncpg
+    start_date = _parse_date(start_date)
+    end_date = _parse_date(end_date)
+
     async with pool.acquire() as conn:
-        # Convert date strings to date objects for asyncpg
-        start_date = _parse_date(start_date)
-        end_date = _parse_date(end_date)
         row = await conn.fetchrow(
             """SELECT
                 COALESCE(SUM(CASE WHEN payment_type = 'Naxt' THEN total_amount ELSE 0 END), 0) as naxt_total,
@@ -171,20 +169,18 @@ async def get_payment_stats(request: Request, start_date: str, end_date: str):
             start_date, end_date
         )
 
-    # Payment summary by type
-    payment_rows = await conn.fetch(
-        """SELECT
-            payment_type,
-            COUNT(*) as count,
-            SUM(total_amount) as total,
-            SUM(total_profit) as profit
-           FROM sales
-           WHERE DATE(created_at) BETWEEN DATE($1) AND DATE($2)
-           GROUP BY payment_type""",
-        start_date, end_date
-    ) if False else []  # This will be done in the pool context below
+        payment_rows = await conn.fetch(
+            """SELECT
+                payment_type,
+                COUNT(*) as count,
+                SUM(total_amount) as total,
+                SUM(total_profit) as profit
+               FROM sales
+               WHERE DATE(created_at) BETWEEN DATE($1) AND DATE($2)
+               GROUP BY payment_type""",
+            start_date, end_date
+        )
 
-    # We need to restructure this to be inside the pool context
     if not row:
         return {
             "naxt_total": 0, "plastik_total": 0, "mixed_total": 0,
@@ -192,20 +188,6 @@ async def get_payment_stats(request: Request, start_date: str, end_date: str):
             "plastik_profit": 0, "debt_profit": 0, "total_profit": 0,
             "payment_summary": [],
         }
-
-    # Get payment summary separately
-    async with pool.acquire() as conn:
-        # Convert date strings to date objects for asyncpg
-        start_date = _parse_date(start_date)
-        end_date = _parse_date(end_date)
-        payment_rows = await conn.fetch(
-            """SELECT payment_type, COUNT(*) as count,
-                      SUM(total_amount) as total, SUM(total_profit) as profit
-               FROM sales
-               WHERE DATE(created_at) BETWEEN DATE($1) AND DATE($2)
-               GROUP BY payment_type""",
-            start_date, end_date
-        )
 
     return {
         "naxt_total": float(row["naxt_total"] or 0),

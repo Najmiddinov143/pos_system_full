@@ -14,4 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt fastapi uvicorn asyncpg pydan
 
 COPY . .
 
+# Add backend/ to PYTHONPATH so `from routers import ...` in backend/main.py resolves correctly
+ENV PYTHONPATH=/app/backend
+
 CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "10000"]

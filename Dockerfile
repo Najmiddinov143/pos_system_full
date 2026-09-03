@@ -8,9 +8,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# uvicorn va gunicorn o'rnatilishini aniq ko'rsatamiz
+RUN pip install --no-cache-dir -r requirements.txt uvicorn gunicorn
 
 COPY . .
 
-# Render o'zi beradigan $PORT o'zgaruvchisidan foydalanamiz
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Array formatida (Exec form) ishga tushiramiz
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "10000"]
